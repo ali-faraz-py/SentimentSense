@@ -1,0 +1,6 @@
+sentiment_model.h5
+tokenizer.pkl
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+NoteBook/

@@ -3,3 +3,5 @@ tokenizer.pkl
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
+Notebook/temp_*.ipynb
+Notebook/data/

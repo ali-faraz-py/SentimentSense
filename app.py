@@ -13,12 +13,12 @@ def load_nlp_pipeline():
 
 sentiment_model, aspect_model = load_nlp_pipeline()
 
-st.title("🧠 Sentify Pro: Aspect Intelligence")
+st.title("🧠 Sentiment Sense: Aspect Intelligence")
 st.write("This AI detects **what** you are talking about and **how** you feel about it.")
 
 user_input = st.text_area("Enter your review:", placeholder="The pizza was great but the service was slow...", height=150)
 
-if st.button("Run Advanced Analysis"):
+if st.button("Run Analysis"):
     if user_input.strip() != "":
         with st.spinner("Processing NLP Pipeline..."):
             

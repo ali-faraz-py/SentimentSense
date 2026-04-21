@@ -1,71 +1,53 @@
-import numpy as np
-from tensorflow import keras
-from tensorflow.keras.preprocessing.sequence import pad_sequences
-from tensorflow.keras.datasets import imdb
 import streamlit as st
+from transformers import pipeline
 
-
-word_index = imdb.get_word_index()
-MODEL_PATH = "sentiment_model.h5" 
-MAX_LENGTH = 200
-
-reverse_word_index = {v: k for k, v in word_index.items()}
-
+st.set_page_config(page_title="Sentify Pro", page_icon="🧠", layout="centered")
 
 @st.cache_resource
-def load_my_model():
-    return keras.models.load_model(MODEL_PATH)
-
-model = load_my_model()
- 
-  
-def decode_review(encoded_text):
-    return " ".join([reverse_word_index.get(i - 3, "?") for i in encoded_text])
- 
- 
-def preprocess_text(text):
-    words = text.lower().split()
+def load_nlp_pipeline():
+    sentiment_pipe = pipeline("sentiment-analysis", model="distilbert-base-uncased-finetuned-sst-2-english")
     
-    encoded = [word_index.get(w, 2) + 3 for w in words]
+    zero_shot_pipe = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
     
-    padded = pad_sequences([encoded], maxlen=MAX_LENGTH)
-    
-    return padded
+    return sentiment_pipe, zero_shot_pipe
 
-st.set_page_config(page_title="AI Movie Reviewer", page_icon="🎬")
-st.title("🎬 Movie Review Sentiment AI")
-st.write("Type a movie review below to see if the AI thinks it is Positive or Negative.")
+sentiment_model, aspect_model = load_nlp_pipeline()
 
-user_input = st.text_area("Enter your review here:", placeholder="The cinematography was brilliant but the plot was a bit slow...")
+st.title("🧠 Sentify Pro: Aspect Intelligence")
+st.write("This AI detects **what** you are talking about and **how** you feel about it.")
 
-if st.button("Analyze Sentiment"):
+user_input = st.text_area("Enter your review:", placeholder="The pizza was great but the service was slow...", height=150)
+
+if st.button("Run Advanced Analysis"):
     if user_input.strip() != "":
-        padded_input = preprocess_text(user_input)
-        prediction = model.predict(padded_input, verbose=0)[0][0]
-        
-        if prediction > 0.5:
-            st.success(f"**POSITIVE 😊** (Score: {prediction:.2f})")
-        else:
-            st.error(f"**NEGATIVE 😞** (Score: {prediction:.2f})")
+        with st.spinner("Processing NLP Pipeline..."):
             
-        st.info("A score closer to 1.0 is very positive, while closer to 0.0 is very negative.")
+            candidate_labels = ["Food", "Service", "Price", "Atmosphere", "Health"]
+            topic_results = aspect_model(user_input, candidate_labels, multi_label=True)
+            
+            sentiment_results = sentiment_model(user_input)[0]
+
+            st.divider()
+            
+            st.subheader("🎯 Aspects Detected")
+            cols = st.columns(len(candidate_labels))
+            
+            for i, label in enumerate(topic_results['labels']):
+                score = topic_results['scores'][i]
+                if score > 0.6:
+                    st.info(f"**{label}** detected ({score*100:.0f}% match)")
+
+            st.divider()
+
+            label = sentiment_results['label']
+            conf = sentiment_results['score']
+            
+            if label == "POSITIVE":
+                st.success(f"### Overall Tone: POSITIVE 😊")
+                st.metric("Confidence", f"{conf*100:.1f}%")
+            else:
+                st.error(f"### Overall Tone: NEGATIVE 😞")
+                st.metric("Confidence", f"{conf*100:.1f}%")
+                
     else:
         st.warning("Please enter some text first!")
- 
- 
-def predict_sentiment(text):
-    padded = preprocess_text(text)
-    
-    prediction = model.predict(padded, verbose=0)[0][0]
-    
-    sentiment = "POSITIVE 😊" if prediction > 0.5 else "NEGATIVE 😞"
-    confidence = prediction if prediction > 0.5 else 1 - prediction
-    
-    return {
-        "text": text,
-        "sentiment": sentiment,
-        "confidence": float(f"{confidence:.4f}"),
-        "confidence_percent": f"{confidence * 100:.2f}%",
-        "raw_score": float(f"{prediction:.4f}")
-    }
- 

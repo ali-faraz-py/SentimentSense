@@ -43,7 +43,7 @@ if st.button("Run Analysis"):
             conf = sentiment_results['score']
             
             if label == "POSITIVE":
-                st.success(f"### Overall Tone: POSITIVE 😊")
+                st.success(f"### Overall Tone: POSITIVE 😊") 
                 st.metric("Confidence", f"{conf*100:.1f}%")
             else:
                 st.error(f"### Overall Tone: NEGATIVE 😞")

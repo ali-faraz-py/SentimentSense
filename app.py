@@ -7,7 +7,7 @@ st.set_page_config(page_title="Sentify Pro", page_icon="🧠", layout="centered"
 def load_nlp_pipeline():
     sentiment_pipe = pipeline("sentiment-analysis", model="distilbert-base-uncased-finetuned-sst-2-english")
     
-    zero_shot_pipe = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+    zero_shot_pipe = pipeline("zero-shot-classification", model="typeform/distilbert-base-uncased-mnli")
     
     return sentiment_pipe, zero_shot_pipe
 

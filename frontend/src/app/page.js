@@ -1,65 +1,153 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+
+const ASPECT_COLORS = {
+  Food: { bg: "#FFF3D6", text: "#8A5A00", dot: "#E8A400" },
+  Service: { bg: "#DCEAFB", text: "#1E4E8C", dot: "#3B82F6" },
+  Price: { bg: "#DDF3E4", text: "#1E6B3A", dot: "#22A05A" },
+  Atmosphere: { bg: "#F1E4FB", text: "#6B2E9C", dot: "#A855F7" },
+  Health: { bg: "#DCF6F2", text: "#106B60", dot: "#14B8A6" },
+};
 
 export default function Home() {
+  const [text, setText] = useState("");
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleAnalyze = async () => {
+    if (!text.trim()) return;
+
+    setLoading(true);
+    setError(null);
+    setResult(null);
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+
+      const response = await fetch(`${apiUrl}/analyze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Analysis failed. Please try again.");
+      }
+
+      const data = await response.json();
+      setResult(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isPositive = result?.sentiment?.label === "POSITIVE";
+
+  const orbGradient = isPositive
+    ? "radial-gradient(circle at 35% 30%, #FFE29A, #F5A623 55%, #D97706 100%)"
+    : "radial-gradient(circle at 35% 30%, #C7B6FF, #7C5CE0 55%, #4C2A9E 100%)";
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.js file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="min-h-screen bg-cream flex flex-col items-center px-6 py-16">
+      <div className="w-full max-w-xl">
+        <p className="font-mono text-[11px] tracking-[0.25em] uppercase text-fadedink text-center mb-3">
+          Aspect-Based Sentiment Analysis
+        </p>
+        <h1 className="font-display italic text-4xl sm:text-5xl text-center text-ink leading-tight">
+          What are you really saying?
+        </h1>
+        <p className="font-body text-center text-fadedink mt-4 max-w-md mx-auto">
+          Paste a review below. This finds what it's about — food, service,
+          price — and how the writer actually feels about each.
+        </p>
+
+        <div className="mt-10 bg-white rounded-2xl border border-line shadow-sm overflow-hidden">
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="The pizza was great but the service was slow..."
+            rows={5}
+            className="paper-lines w-full p-6 font-body text-[15px] text-ink placeholder-fadedink/60 resize-none outline-none"
+          />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+
+        <button
+          onClick={handleAnalyze}
+          disabled={!text.trim() || loading}
+          className="mt-5 w-full py-3.5 bg-ink text-cream font-body font-medium rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition cursor-pointer"
+        >
+          {loading ? "Reading between the lines..." : "Analyze"}
+        </button>
+
+        {error && (
+          <p className="mt-4 text-sm text-red-600 text-center">{error}</p>
+        )}
+
+        {result && (
+          <div className="mt-12 flex flex-col items-center">
+            <div className="relative w-36 h-36 flex items-center justify-center">
+              <div
+                className="orb-pulse absolute inset-0 rounded-full"
+                style={{ background: orbGradient, filter: "blur(2px)" }}
+              />
+              <div
+                className="orb-spin absolute inset-0 rounded-full border-2 border-dashed opacity-30"
+                style={{ borderColor: isPositive ? "#D97706" : "#4C2A9E" }}
+              />
+              <div className="relative text-center">
+                <p className="font-display text-3xl font-semibold text-white drop-shadow-sm">
+                  {(result.sentiment.confidence * 100).toFixed(0)}%
+                </p>
+              </div>
+            </div>
+
+            <p className="font-display italic text-xl mt-4">
+              {isPositive ? "Positive" : "Negative"}
+            </p>
+
+            {result.aspects.length > 0 && (
+              <div className="mt-8 w-full">
+                <p className="font-mono text-[11px] tracking-[0.2em] uppercase text-fadedink text-center mb-4">
+                  Aspects Detected
+                </p>
+                <div className="flex flex-wrap justify-center gap-2.5">
+                  {result.aspects.map((a) => {
+                    const colors = ASPECT_COLORS[a.label] || {
+                      bg: "#EEE",
+                      text: "#333",
+                      dot: "#999",
+                    };
+                    return (
+                      <div
+                        key={a.label}
+                        className="flex items-center gap-2 px-4 py-2 rounded-full font-body text-sm font-medium"
+                        style={{ backgroundColor: colors.bg, color: colors.text }}
+                      >
+                        <span
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: colors.dot }}
+                        />
+                        {a.label}
+                        <span className="opacity-60 text-xs">
+                          {(a.score * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        <p className="mt-16 text-xs text-center text-fadedink">
+          Powered by DistilBERT + zero-shot classification · Educational demo
+        </p>
+      </div>
+    </main>
   );
 }

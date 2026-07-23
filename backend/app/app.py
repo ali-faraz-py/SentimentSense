@@ -1,53 +1,56 @@
-import streamlit as st
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from transformers import pipeline
 
-st.set_page_config(page_title="Sentify Pro", page_icon="🧠", layout="centered")
+app = FastAPI(title="Sentiment Sense API")
 
-@st.cache_resource
-def load_nlp_pipeline():
-    sentiment_pipe = pipeline("sentiment-analysis", model="distilbert-base-uncased-finetuned-sst-2-english")
-    
-    zero_shot_pipe = pipeline("zero-shot-classification", model="typeform/distilbert-base-uncased-mnli")
-    
-    return sentiment_pipe, zero_shot_pipe
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_headers=["*"],
+    allow_methods=["*"],
+)
 
-sentiment_model, aspect_model = load_nlp_pipeline()
+sentiment_pipe = pipeline(
+    "sentiment-analysis",
+    model="distilbert-base-uncased-finetuned-sst-2-english",
+)
 
-st.title("🧠 Sentiment Sense: Aspect Intelligence")
-st.write("This AI detects **what** you are talking about and **how** you feel about it.")
+zero_shot_pipe = pipeline(
+    "zero-shot-classification",
+    model="typeform/distilbert-base-uncased-mnli",
+)
 
-user_input = st.text_area("Enter your review:", placeholder="The pizza was great but the service was slow...", height=150)
+CANDIDATE_LABELS = ["Food", "Service", "Price", "Atmosphere", "Health"]
 
-if st.button("Run Analysis"):
-    if user_input.strip() != "":
-        with st.spinner("Processing NLP Pipeline..."):
-            
-            candidate_labels = ["Food", "Service", "Price", "Atmosphere", "Health"]
-            topic_results = aspect_model(user_input, candidate_labels, multi_label=True)
-            
-            sentiment_results = sentiment_model(user_input)[0]
 
-            st.divider()
-            
-            st.subheader("🎯 Aspects Detected")
-            cols = st.columns(len(candidate_labels))
-            
-            for i, label in enumerate(topic_results['labels']):
-                score = topic_results['scores'][i]
-                if score > 0.6:
-                    st.info(f"**{label}** detected ({score*100:.0f}% match)")
+class AnalyzeRequest(BaseModel):
+    text: str
 
-            st.divider()
 
-            label = sentiment_results['label']
-            conf = sentiment_results['score']
-            
-            if label == "POSITIVE":
-                st.success(f"### Overall Tone: POSITIVE 😊") 
-                st.metric("Confidence", f"{conf*100:.1f}%")
-            else:
-                st.error(f"### Overall Tone: NEGATIVE 😞")
-                st.metric("Confidence", f"{conf*100:.1f}%")
-                
-    else:
-        st.warning("Please enter some text first!")
+@app.get("/")
+def health_check():
+    return {"status": "ok"}
+
+
+@app.post("/analyze")
+def analyze(request: AnalyzeRequest):
+    text = request.text
+
+    topic_results = zero_shot_pipe(text, CANDIDATE_LABELS, multi_label=True)
+    aspects = [
+        {"label": label, "score": round(float(score), 4)}
+        for label, score in zip(topic_results["labels"], topic_results["scores"])
+        if score > 0.6
+    ]
+
+    sentiment_result = sentiment_pipe(text)[0]
+
+    return {
+        "aspects": aspects,
+        "sentiment": {
+            "label": sentiment_result["label"],
+            "confidence": round(float(sentiment_result["score"]), 4),
+        },
+    }

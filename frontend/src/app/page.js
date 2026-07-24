@@ -57,7 +57,7 @@ export default function Home() {
         <p className="font-mono text-[11px] tracking-[0.25em] uppercase text-fadedink text-center mb-3">
           Aspect-Based Sentiment Analysis
         </p>
-        <h1 className="font-display italic text-4xl sm:text-5xl text-center text-ink leading-tight">
+        <h1 className="font-display font-semibold text-4xl sm:text-5xl text-center text-ink leading-tight">
           What are you really saying?
         </h1>
         <p className="font-body text-center text-fadedink mt-4 max-w-md mx-auto">
@@ -98,14 +98,17 @@ export default function Home() {
                 className="orb-spin absolute inset-0 rounded-full border-2 border-dashed opacity-30"
                 style={{ borderColor: isPositive ? "#D97706" : "#4C2A9E" }}
               />
-              <div className="relative text-center">
-                <p className="font-display text-3xl font-semibold text-white drop-shadow-sm">
+              <div
+                className="relative w-20 h-20 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: "rgba(31, 27, 24, 0.55)" }}
+              >
+                <p className="font-display text-2xl font-semibold text-white">
                   {(result.sentiment.confidence * 100).toFixed(0)}%
                 </p>
               </div>
             </div>
 
-            <p className="font-display italic text-xl mt-4">
+            <p className="font-display font-medium text-xl mt-4 text-ink">
               {isPositive ? "Positive" : "Negative"}
             </p>
 
